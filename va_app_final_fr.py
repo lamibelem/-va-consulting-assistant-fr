@@ -26,7 +26,7 @@ prompt_descriptions = {card["title"]: card["description"] for card in prompt_dat
 prompts = {card["title"]: card["prompt"] for card in prompt_data}
 
 st.set_page_config(page_title="Assistant Fiscal – VA Consulting", layout="centered")
-st.image("va_logo.jpg", width=200)
+# st.image("va_logo.jpg", width=200)
 st.title("VA CONSULTING – Assistant Fiscal IA")
 st.markdown("""
 Bienvenue dans votre assistant fiscal intelligent, conçu pour répondre à toutes vos questions fiscales en Afrique de l’Ouest francophone. Posez une question ou téléversez un document pour obtenir des réponses précises, rapides et adaptées aux réglementations locales.
@@ -125,6 +125,7 @@ if fichier:
 
         blocs_texte = decouper_texte(texte_corrige)
 
+        client = ChatCompletionsClient(endpoint=endpoint, credential=AzureKeyCredential(api_key))
         if st.button("🧠 Résumer le document complet"):
             resumes = []
             for i, bloc in enumerate(blocs_texte):
