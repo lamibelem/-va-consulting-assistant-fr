@@ -71,7 +71,7 @@ if question_utilisateur:
     # Export PDF avec support UTF-8
     pdf = FPDF()
     pdf.add_page()
-    pdf.set_font("Arial", size=12)
+    pdf.set_font("helvetica", size=12)
     pdf.multi_cell(0, 10, txt=resultat)
     pdf_output = pdf.output(dest="S").encode("latin-1", "ignore")
     st.download_button("📄 Télécharger la réponse en PDF", data=pdf_output, file_name="reponse_va.pdf", mime="application/pdf")
