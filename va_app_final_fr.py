@@ -11,6 +11,7 @@ from fpdf import FPDF
 import os
 import csv
 import io
+import langdetect
 
 # --- Configuration Azure ---
 endpoint = "https://DeepSeek-R1-iidkm.eastus2.models.ai.azure.com"
@@ -58,7 +59,12 @@ if question_utilisateur:
     client = ChatCompletionsClient(endpoint=endpoint, credential=AzureKeyCredential(api_key))
     reponse = client.complete(
         messages=[
-            SystemMessage(content=prompts[mode_assistant]),
+            langue = langdetect.detect(question_utilisateur)
+        if langue == "fr":
+            prompt_final = prompts[mode_assistant] + "\nVeuillez répondre uniquement en français, y compris dans vos raisonnements internes."
+        else:
+            prompt_final = prompts[mode_assistant] + "\nPlease respond only in English, including your internal reasoning."
+        SystemMessage(content=prompt_final),
             UserMessage(content=question_utilisateur),
         ],
         max_tokens=2048,
@@ -132,7 +138,12 @@ if fichier:
                 st.info(f"Traitement du bloc {i+1}/{len(blocs_texte)}...")
                 rep = client.complete(
                     messages=[
-                        SystemMessage(content=prompts[mode_assistant]),
+                        langue = langdetect.detect(question_utilisateur)
+        if langue == "fr":
+            prompt_final = prompts[mode_assistant] + "\nVeuillez répondre uniquement en français, y compris dans vos raisonnements internes."
+        else:
+            prompt_final = prompts[mode_assistant] + "\nPlease respond only in English, including your internal reasoning."
+        SystemMessage(content=prompt_final),
                         UserMessage(content=bloc),
                     ],
                     max_tokens=2048,
@@ -147,7 +158,12 @@ if fichier:
             if suivi:
                 reponse_suivi = client.complete(
                     messages=[
-                        SystemMessage(content=prompts[mode_assistant]),
+                        langue = langdetect.detect(question_utilisateur)
+        if langue == "fr":
+            prompt_final = prompts[mode_assistant] + "\nVeuillez répondre uniquement en français, y compris dans vos raisonnements internes."
+        else:
+            prompt_final = prompts[mode_assistant] + "\nPlease respond only in English, including your internal reasoning."
+        SystemMessage(content=prompt_final),
                         UserMessage(content=resume_final[:3000]),
                         AssistantMessage(content=resume_final),
                         UserMessage(content=suivi),
