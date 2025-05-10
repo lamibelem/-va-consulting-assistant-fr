@@ -1,0 +1,7 @@
+streamlit
+fpdf
+PyPDF2
+pytesseract
+Pillow
+PyMuPDF
+azure-ai-inference
