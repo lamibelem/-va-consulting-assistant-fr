@@ -59,12 +59,7 @@ if question_utilisateur:
     client = ChatCompletionsClient(endpoint=endpoint, credential=AzureKeyCredential(api_key))
     reponse = client.complete(
         messages=[
-            langue = langdetect.detect(question_utilisateur)
-        if langue == "fr":
-            prompt_final = prompts[mode_assistant] + "\nVeuillez répondre uniquement en français, y compris dans vos raisonnements internes."
-        else:
-            prompt_final = prompts[mode_assistant] + "\nPlease respond only in English, including your internal reasoning."
-        SystemMessage(content=prompts[mode_assistant]),
+            SystemMessage(content=prompts[mode_assistant]),
             UserMessage(content=question_utilisateur),
         ],
         max_tokens=2048,
@@ -138,12 +133,7 @@ if fichier:
                 st.info(f"Traitement du bloc {i+1}/{len(blocs_texte)}...")
                 rep = client.complete(
                     messages=[
-                        langue = langdetect.detect(question_utilisateur)
-        if langue == "fr":
-            prompt_final = prompts[mode_assistant] + "\nVeuillez répondre uniquement en français, y compris dans vos raisonnements internes."
-        else:
-            prompt_final = prompts[mode_assistant] + "\nPlease respond only in English, including your internal reasoning."
-        SystemMessage(content=prompts[mode_assistant]),
+                        SystemMessage(content=prompts[mode_assistant]),
                         UserMessage(content=bloc),
                     ],
                     max_tokens=2048,
@@ -158,12 +148,7 @@ if fichier:
             if suivi:
                 reponse_suivi = client.complete(
                     messages=[
-                        langue = langdetect.detect(question_utilisateur)
-        if langue == "fr":
-            prompt_final = prompts[mode_assistant] + "\nVeuillez répondre uniquement en français, y compris dans vos raisonnements internes."
-        else:
-            prompt_final = prompts[mode_assistant] + "\nPlease respond only in English, including your internal reasoning."
-        SystemMessage(content=prompts[mode_assistant]),
+                        SystemMessage(content=prompts[mode_assistant]),
                         UserMessage(content=resume_final[:3000]),
                         AssistantMessage(content=resume_final),
                         UserMessage(content=suivi),
