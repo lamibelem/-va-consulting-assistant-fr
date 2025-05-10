@@ -5,3 +5,4 @@ pytesseract
 Pillow
 PyMuPDF
 azure-ai-inference
+langdetect
