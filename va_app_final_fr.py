@@ -64,7 +64,7 @@ if question_utilisateur:
             prompt_final = prompts[mode_assistant] + "\nVeuillez répondre uniquement en français, y compris dans vos raisonnements internes."
         else:
             prompt_final = prompts[mode_assistant] + "\nPlease respond only in English, including your internal reasoning."
-        SystemMessage(content=prompt_final),
+        SystemMessage(content=prompts[mode_assistant]),
             UserMessage(content=question_utilisateur),
         ],
         max_tokens=2048,
@@ -143,7 +143,7 @@ if fichier:
             prompt_final = prompts[mode_assistant] + "\nVeuillez répondre uniquement en français, y compris dans vos raisonnements internes."
         else:
             prompt_final = prompts[mode_assistant] + "\nPlease respond only in English, including your internal reasoning."
-        SystemMessage(content=prompt_final),
+        SystemMessage(content=prompts[mode_assistant]),
                         UserMessage(content=bloc),
                     ],
                     max_tokens=2048,
@@ -163,7 +163,7 @@ if fichier:
             prompt_final = prompts[mode_assistant] + "\nVeuillez répondre uniquement en français, y compris dans vos raisonnements internes."
         else:
             prompt_final = prompts[mode_assistant] + "\nPlease respond only in English, including your internal reasoning."
-        SystemMessage(content=prompt_final),
+        SystemMessage(content=prompts[mode_assistant]),
                         UserMessage(content=resume_final[:3000]),
                         AssistantMessage(content=resume_final),
                         UserMessage(content=suivi),
