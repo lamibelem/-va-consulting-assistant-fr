@@ -72,8 +72,8 @@ if question_utilisateur:
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("helvetica", size=12)
-    pdf.multi_cell(0, 10, txt=resultat)
-    pdf_output = pdf.output(dest="S").encode("utf-8")
+    pdf.multi_cell(0, 10, resultat)
+    pdf_output = pdf.output(dest="S")
     st.download_button("📄 Télécharger la réponse en PDF", data=pdf_output, file_name="reponse_va.pdf", mime="application/pdf")
 
     if email_utilisateur:
