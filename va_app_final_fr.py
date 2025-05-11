@@ -84,7 +84,7 @@ if question_utilisateur:
         pdf.set_font("helvetica", size=12)
 
     pdf.multi_cell(0, 10, resultat)
-    pdf_output = pdf.output(dest="S").encode("latin-1", "ignore")
+    pdf_output = pdf.output(dest="S").encode("utf-8")
 
     st.download_button("📄 Télécharger la réponse en PDF", data=pdf_output, file_name="reponse_va.pdf", mime="application/pdf")
 
