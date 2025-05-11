@@ -75,12 +75,14 @@ if question_utilisateur:
     # Génération PDF compatible UTF-8
     pdf = FPDF()
     pdf.add_page()
-    police_path = os.path.join("fonts", "DejaVuSans.ttf")
-    if os.path.exists(police_path):
-        pdf.add_font("DejaVu", "", police_path, uni=True)
+
+    font_path = os.path.join("fonts", "DejaVuSans.ttf")
+    if os.path.exists(font_path):
+        pdf.add_font("DejaVu", "", font_path, uni=True)
         pdf.set_font("DejaVu", size=12)
     else:
         pdf.set_font("helvetica", size=12)
+
     pdf.multi_cell(0, 10, resultat)
     pdf_output = pdf.output(dest="S").encode("latin-1", "ignore")
 
