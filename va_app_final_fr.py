@@ -4,21 +4,22 @@ from azure.ai.inference import ChatCompletionsClient
 from azure.ai.inference.models import SystemMessage, UserMessage, AssistantMessage
 from azure.core.credentials import AzureKeyCredential
 from PyPDF2 import PdfReader
-import fitz
 import pytesseract
-from PIL import Image
-from fpdf import FPDF
+from pdf2image import convert_from_bytes
 import os
+import smtplib
+from email.message import EmailMessage
 import csv
 import io
 import langdetect
+from fpdf import FPDF
 
 # --- Configuration Azure ---
 endpoint = "https://DeepSeek-R1-iidkm.eastus2.models.ai.azure.com"
 api_key = "u2tl0lAkttAf0dEDO4UP7yxYfxpCKSQt"
 model_name = "DeepSeek-R1-iidkm"
 
-# --- Chargement des prompts ---
+# --- Chargement des cartes de prompts ---
 with open("prompt_cards.json", "r", encoding="utf-8") as f:
     prompt_data = json.load(f)
 
@@ -26,41 +27,44 @@ prompt_options = [card["title"] for card in prompt_data]
 prompt_descriptions = {card["title"]: card["description"] for card in prompt_data}
 prompts = {card["title"]: card["prompt"] for card in prompt_data}
 
-st.set_page_config(page_title="Assistant Fiscal – VA Consulting", layout="centered")
-# st.image("va_logo.jpg", width=200)
-st.title("VA CONSULTING – Assistant Fiscal IA")
+# --- UI ---
+st.set_page_config(page_title="VA CONSULTING – Assistant Fiscal AI", layout="centered")
+st.image("va_logo.jpg", width=200)
+st.title("VA CONSULTING – Assistant Fiscal AI")
+
 st.markdown("""
-Bienvenue dans votre assistant fiscal intelligent, conçu pour répondre à toutes vos questions fiscales en Afrique de l’Ouest francophone. Posez une question ou téléversez un document pour obtenir des réponses précises, rapides et adaptées aux réglementations locales.
+Bienvenue dans votre assistant fiscal intelligent. Posez une question ou téléversez un document fiscal pour recevoir des réponses rapides et adaptées aux règles fiscales d’Afrique de l’Ouest.
 """)
 
-mode_assistant = st.selectbox("🧠 Choisissez un mode d'assistance :", prompt_options, help=prompt_descriptions[prompt_options[0]])
-st.caption(f"💡 {prompt_descriptions[mode_assistant]}")
+# --- Sélecteur de prompt ---
+prompt_mode = st.selectbox("🧠 Choisissez un Mode d'Assistance:", prompt_options, help=prompt_descriptions[prompt_options[0]])
+st.caption(f"💡 {prompt_descriptions[prompt_mode]}")
 
-# --- Informations utilisateur ---
+# --- Informations utilisateur et paiement ---
 st.markdown("---")
 col1, col2 = st.columns(2)
 with col1:
-    nom_utilisateur = st.text_input("👤 Votre nom complet")
-    entreprise_utilisateur = st.text_input("🏢 Nom de votre entreprise")
+    nom_utilisateur = st.text_input("👤 Nom complet")
+    societe_utilisateur = st.text_input("🏢 Société")
 with col2:
-    email_utilisateur = st.text_input("📧 Votre adresse email")
-    paiement_effectue = st.checkbox("✅ J'ai payé 2 000 XOF via Orange Money")
+    email_utilisateur = st.text_input("📧 Email")
+    paiement_valide = st.checkbox("✅ J’ai payé 2 000 XOF via Orange Money")
 
 st.markdown("""
-💰 **Accès mensuel : 2 000 XOF**  
-Effectuez votre paiement via **Orange Money** au : **+226 76 43 73 58**
----
+💰 **Accès mensuel : 2 000 XOF**
+📱 Paiement via **Orange Money** : **+226 76 43 73 58**
 """)
 
-# --- Question directe ---
-st.markdown("### 🧾 Posez une question fiscale")
-question_utilisateur = st.text_input("Écrivez votre question ici")
+# --- Saisie de question ---
+st.markdown("### 🧾 Posez votre question fiscale")
+question_utilisateur = st.text_input("Entrez votre question")
 if question_utilisateur:
+    langue = langdetect.detect(question_utilisateur)
     client = ChatCompletionsClient(endpoint=endpoint, credential=AzureKeyCredential(api_key))
     reponse = client.complete(
         messages=[
-            SystemMessage(content=prompts[mode_assistant]),
-            UserMessage(content=question_utilisateur),
+            SystemMessage(content=prompts[prompt_mode]),
+            UserMessage(content=question_utilisateur)
         ],
         max_tokens=2048,
         model=model_name
@@ -68,89 +72,73 @@ if question_utilisateur:
     resultat = reponse.choices[0].message.content
     st.success(resultat)
 
-    # Export PDF avec support UTF-8
+    # Génération PDF compatible UTF-8
     pdf = FPDF()
     pdf.add_page()
-    pdf.set_font("helvetica", size=12)
+    police_path = os.path.join("fonts", "DejaVuSans.ttf")
+    if os.path.exists(police_path):
+        pdf.add_font("DejaVu", "", police_path, uni=True)
+        pdf.set_font("DejaVu", size=12)
+    else:
+        pdf.set_font("helvetica", size=12)
     pdf.multi_cell(0, 10, resultat)
-    pdf_output = pdf.output(dest="S")
+    pdf_output = pdf.output(dest="S").encode("latin-1", "ignore")
+
     st.download_button("📄 Télécharger la réponse en PDF", data=pdf_output, file_name="reponse_va.pdf", mime="application/pdf")
 
     if email_utilisateur:
         try:
-            with open("va_leads.csv", "a", newline="", encoding="utf-8") as file:
-                csv.writer(file).writerow([nom_utilisateur, entreprise_utilisateur, email_utilisateur, question_utilisateur, resultat])
-        except:
-            st.warning("⚠️ Erreur lors de l'enregistrement des informations.")
+            with open("va_leads.csv", mode="a", newline="", encoding="utf-8") as f:
+                writer = csv.writer(f)
+                writer.writerow([nom_utilisateur, societe_utilisateur, email_utilisateur, question_utilisateur, resultat])
+        except Exception:
+            st.warning("⚠️ Impossible d'enregistrer dans le fichier CSV.")
 
 # --- Téléversement de document ---
-st.markdown("### 📂 Ou téléversez un document fiscal (.pdf ou .txt)")
-fichier = st.file_uploader("Téléverser un fichier", type=["pdf", "txt"])
-if fichier:
-    donnees = fichier.getvalue()
-    texte = ""
+st.markdown("### 📄 Ou téléversez un document (.pdf ou .txt)")
 
+fichier = st.file_uploader("Téléverser un document", type=["pdf", "txt"])
+if fichier:
+    texte = ""
     if fichier.type == "application/pdf":
         try:
-            pdf = PdfReader(io.BytesIO(donnees))
-            texte = "\n".join([page.extract_text() or "" for page in pdf.pages])
+            pdf = PdfReader(fichier)
+            texte = "\n".join([page.extract_text() for page in pdf.pages if page.extract_text()])
         except:
             texte = ""
-
-        if not texte.strip():
-            st.info("📷 PDF scanné détecté. OCR en cours...")
-            try:
-                doc = fitz.open(stream=donnees, filetype="pdf")
-                for page in doc:
-                    img = Image.open(io.BytesIO(page.get_pixmap(dpi=300).tobytes()))
-                    texte += pytesseract.image_to_string(img, lang="fra")
-            except:
-                st.error("❌ Échec de l'extraction de texte.")
-                st.stop()
+        if not texte:
+            st.info("🔎 Extraction OCR en cours...")
+            images = convert_from_bytes(fichier.read())
+            texte = "\n".join([pytesseract.image_to_string(img) for img in images])
     else:
-        texte = donnees.decode("utf-8")
+        texte = fichier.read().decode("utf-8")
 
     if not texte.strip():
-        st.warning("⚠️ Aucun texte exploitable trouvé.")
+        st.warning("⚠️ Aucun texte lisible trouvé.")
     else:
-        st.write("✏️ Résultat OCR (vous pouvez corriger ci-dessous) :")
-        texte_corrige = st.text_area("Modifier le texte extrait :", value=texte[:10000], height=300)
+        st.write("📑 Texte extrait :")
+        st.code(texte[:1000])
+        if st.button("📊 Résumer ce document"):
+            client = ChatCompletionsClient(endpoint=endpoint, credential=AzureKeyCredential(api_key))
+            reponse_doc = client.complete(
+                messages=[
+                    SystemMessage(content=prompts[prompt_mode]),
+                    UserMessage(content=texte[:3000])
+                ],
+                max_tokens=2048,
+                model=model_name
+            )
+            resume = reponse_doc.choices[0].message.content
+            st.success(resume)
 
-        def decouper_texte(texte, max_len=3000, chevauchement=500):
-            blocs, i = [], 0
-            while i < len(texte):
-                blocs.append(texte[i:i+max_len])
-                i += max_len - chevauchement
-            return blocs
-
-        blocs_texte = decouper_texte(texte_corrige)
-
-        client = ChatCompletionsClient(endpoint=endpoint, credential=AzureKeyCredential(api_key))
-        if st.button("🧠 Résumer le document complet"):
-            resumes = []
-            for i, bloc in enumerate(blocs_texte):
-                st.info(f"Traitement du bloc {i+1}/{len(blocs_texte)}...")
-                rep = client.complete(
-                    messages=[
-                        SystemMessage(content=prompts[mode_assistant]),
-                        UserMessage(content=bloc),
-                    ],
-                    max_tokens=2048,
-                    model=model_name
-                )
-                resumes.append(rep.choices[0].message.content)
-
-            resume_final = "\n".join(resumes)
-            st.success(resume_final)
-
-            suivi = st.text_input("🔄 Posez une question complémentaire basée sur ce résumé :")
+            suivi = st.text_input("💬 Question complémentaire sur ce document :")
             if suivi:
                 reponse_suivi = client.complete(
                     messages=[
-                        SystemMessage(content=prompts[mode_assistant]),
-                        UserMessage(content=resume_final[:3000]),
-                        AssistantMessage(content=resume_final),
-                        UserMessage(content=suivi),
+                        SystemMessage(content=prompts[prompt_mode]),
+                        UserMessage(content=texte[:2000]),
+                        AssistantMessage(content=resume),
+                        UserMessage(content=suivi)
                     ],
                     max_tokens=2048,
                     model=model_name
