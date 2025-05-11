@@ -78,13 +78,13 @@ if question_utilisateur:
 
     font_path = os.path.join("fonts", "DejaVuSans.ttf")
     if os.path.exists(font_path):
-        pdf.add_font("DejaVu", "", font_path, uni=True)
+        pdf.add_font("DejaVu", "", font_path)
         pdf.set_font("DejaVu", size=12)
     else:
         pdf.set_font("helvetica", size=12)
 
     pdf.multi_cell(0, 10, resultat)
-    pdf_output = pdf.output(dest="S").encode("utf-8")
+    pdf_output = pdf.output(dest="S")
 
     st.download_button("📄 Télécharger la réponse en PDF", data=pdf_output, file_name="reponse_va.pdf", mime="application/pdf")
 
