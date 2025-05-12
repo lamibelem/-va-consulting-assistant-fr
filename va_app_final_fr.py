@@ -22,6 +22,7 @@ client = ChatCompletionsClient(
 
 st.set_page_config(page_title="VA CONSULTING – Assistant Fiscal IA", layout="wide")
 st.title("🤖 VA CONSULTING – Assistant Fiscal IA")
+
 st.markdown("""
 Bienvenue sur votre assistant fiscal alimenté par l'IA. Posez une question fiscale ou téléversez un document pour obtenir une réponse adaptée au contexte fiscal de l'UEMOA.
 
@@ -31,6 +32,15 @@ Bienvenue sur votre assistant fiscal alimenté par l'IA. Posez une question fisc
 nom_utilisateur = st.text_input("👤 Votre nom complet")
 societe_utilisateur = st.text_input("🏢 Nom de votre société")
 email_utilisateur = st.text_input("📧 Votre adresse e-mail")
+
+# Prompt selector
+prompt_options = {
+    "💼 Conseils fiscaux UEMOA": "Vous êtes un assistant fiscal expert en fiscalité UEMOA. Répondez avec des références précises, en français clair, structuré et concis.",
+    "📊 Analyse d’un document fiscal": "Vous êtes un auditeur fiscal. Analysez ce document selon les règles de la fiscalité UEMOA.",
+    "🧾 Revue TVA et obligations déclaratives": "Vous êtes un expert en TVA en Afrique de l’Ouest. Donnez des conseils pratiques sur les obligations fiscales."
+}
+
+selected_prompt = st.selectbox("🧠 Choisissez un mode d’assistance :", list(prompt_options.keys()))
 
 uploaded_file = st.file_uploader("📎 Téléverser un document PDF (facultatif)", type=["pdf"])
 question_utilisateur = st.text_area("🧾 Posez votre question fiscale ici :", height=150)
@@ -52,7 +62,7 @@ if st.button("📤 Soumettre"):
                 st.error(f"Erreur lors de l'extraction du PDF : {e}")
 
         langue_detectee = detect(question_utilisateur)
-        system_message = "Vous êtes un assistant fiscal expert en fiscalité UEMOA. Répondez avec des références précises, en français clair, structuré et concis." if langue_detectee == "fr" else "You are a tax advisor assistant specializing in West African tax regulations. Provide accurate, structured and professional answers in English."
+        system_message = prompt_options[selected_prompt]
 
         messages = [
             SystemMessage(content=system_message),
@@ -66,8 +76,20 @@ if st.button("📤 Soumettre"):
         )
 
         resultat = response.choices[0].message.content
+        if resultat.lower().startswith("<think>"):
+            resultat = "🤔 Réflexion en cours..." + "\n\n" + resultat.split("</think>")[-1].strip()
+
+        # Enable session history
+        if "historique" not in st.session_state:
+            st.session_state.historique = []
+        st.session_state.historique.append((question_utilisateur, resultat))
+
         st.markdown("## 🧠 Réponse IA :")
-        st.write(resultat)
+        for i, (q, r) in enumerate(st.session_state.historique):
+            with st.chat_message("👤 Utilisateur"):
+                st.markdown(q)
+            with st.chat_message("🤖 Assistant"):
+                st.markdown(r)
 
         try:
             pdf = FPDF()
