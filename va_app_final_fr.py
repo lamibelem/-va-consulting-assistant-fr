@@ -80,6 +80,11 @@ if question_utilisateur:
         )
 
         resultat = response.choices[0].message.content
+
+        # Hide the "<think>...</think>" part if present
+        if "<think>" in resultat and "</think>" in resultat:
+            resultat = resultat.split("</think>")[-1].strip()
+
         st.session_state.historique.append(AssistantMessage(content=resultat))
 
         st.markdown("## 🧠 Réponse IA :")
