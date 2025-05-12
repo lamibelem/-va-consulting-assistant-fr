@@ -43,9 +43,9 @@ prompt_options = {
 selected_prompt = st.selectbox("🧠 Choisissez un mode d’assistance :", list(prompt_options.keys()))
 
 uploaded_file = st.file_uploader("📎 Téléverser un document PDF (facultatif)", type=["pdf"])
-question_utilisateur = st.text_area("🧾 Posez votre question fiscale ici :", height=150)
+question_utilisateur = st.chat_input("💬 Posez votre question fiscale ici :")
 
-if st.button("📤 Soumettre"):
+if question_utilisateur:
     with st.spinner("Analyse en cours..."):
         contenu_extrait = ""
 
@@ -64,10 +64,14 @@ if st.button("📤 Soumettre"):
         langue_detectee = detect(question_utilisateur)
         system_message = prompt_options[selected_prompt]
 
+        if "historique" not in st.session_state:
+            st.session_state.historique = []
+
+        st.session_state.historique.append(UserMessage(content=question_utilisateur))
+
         messages = [
-            SystemMessage(content=system_message),
-            UserMessage(content=contenu_extrait + "\n" + question_utilisateur)
-        ]
+            SystemMessage(content=system_message)
+        ] + st.session_state.historique
 
         response = client.complete(
             messages=messages,
@@ -76,20 +80,16 @@ if st.button("📤 Soumettre"):
         )
 
         resultat = response.choices[0].message.content
-        if resultat.lower().startswith("<think>"):
-            resultat = "🤔 Réflexion en cours..." + "\n\n" + resultat.split("</think>")[-1].strip()
-
-        # Enable session history
-        if "historique" not in st.session_state:
-            st.session_state.historique = []
-        st.session_state.historique.append((question_utilisateur, resultat))
+        st.session_state.historique.append(AssistantMessage(content=resultat))
 
         st.markdown("## 🧠 Réponse IA :")
-        for i, (q, r) in enumerate(st.session_state.historique):
-            with st.chat_message("👤 Utilisateur"):
-                st.markdown(q)
-            with st.chat_message("🤖 Assistant"):
-                st.markdown(r)
+        for message in st.session_state.historique:
+            if isinstance(message, UserMessage):
+                with st.chat_message("👤 Utilisateur"):
+                    st.markdown(message.content)
+            elif isinstance(message, AssistantMessage):
+                with st.chat_message("🤖 Assistant"):
+                    st.markdown(message.content)
 
         try:
             pdf = FPDF()
