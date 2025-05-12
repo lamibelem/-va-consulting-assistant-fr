@@ -75,7 +75,7 @@ if st.button("📤 Soumettre"):
             pdf.add_font("NotoSans", "", "fonts/NotoSans-Regular.ttf", uni=True)
             pdf.set_font("NotoSans", size=12)
             pdf.multi_cell(0, 10, resultat)
-            pdf_bytes = pdf.output(dest="S").encode("latin-1", "ignore")
+            pdf_bytes = bytes(pdf.output(dest="S"))
             st.download_button("📄 Télécharger la réponse en PDF", data=pdf_bytes, file_name="reponse_va.pdf", mime="application/pdf")
         except Exception as e:
             st.warning(f"PDF download unavailable: {e}")
